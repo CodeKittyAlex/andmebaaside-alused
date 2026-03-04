@@ -292,4 +292,46 @@ Value nvarchar(20)
 insert into Test1 values('x')
 select * from test1
 
+alter table Employees
+drop column City
+
+select Firstname, Gender, Salary, departmentname
+from Employees
+inner join Department
+on Employees.DepartmentId = Department.Id
+
+select Name, gender, Salary, DepartmentName
+from Employees
+full outer join Department
+on Employees.DepartmentId = Department.Id
+
+select Name, gender, Salary, DepartmentName
+from Employees
+cross join Department
+
+select Name, gender, Salary, DepartmentName
+from Employees
+left join Department
+on Employees.DepartmentId = Department.Id
+where Employees.DepartmentId is null
+
+select Name, gender, Salary, DepartmentName
+from Employees
+right join Department
+on Employees.DepartmentId = Department.Id
+where Employees.DepartmentId is null
+
+select Name, gender, Salary, DepartmentName
+from Employees
+full join Department
+on Employees.DepartmentId = Department.Id
+where Employees.DepartmentId is null
+or Department.Id is null
+
+select Product.name as [Product Name], ProductNumber, ListPrice,
+ProductModle.Name as [Product Modle Name]
+from SalesLt.Product
+inner join SalesLt.ProductModle
+on PRODUCT.ProductModelId = ProductModle.ProductModelId
+
 
