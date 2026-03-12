@@ -1,5 +1,5 @@
 --teeme andmebaasi e db
---create database IKT25tar
+create database IKT25tar
 
 -- andmebaasi valimine
 --use IKT25tar
@@ -334,4 +334,170 @@ from SalesLt.Product
 inner join SalesLt.ProductModle
 on PRODUCT.ProductModelId = ProductModle.ProductModelId
 
+--null funktsiooni kasutamine
+select isnull ('Ingvar', 'No Manager') as Manager
 
+--null asemel kuvab No Manager
+select coalesce(null, 'No Manager') as manager
+
+alter table Employees
+add ManagerId int
+
+--neile kellel ei ole ülemust, siis paneb neile No Manager Teksti
+select E.Name as Employee, isnull(M.Name, 'No Manager') as Manager
+from Employees E
+left join Employees M
+on E.ManagerId = M.Id
+
+select E.Name as Employee, isnull(M.Name, 'No Manager') as Manager
+from Employees E
+inner join Employees M
+on E.ManagerId = M.Id
+
+select E.Name as Employee, M.Name as Manager
+from Employees E
+cross join Employees M
+
+alter table Employees
+add MiddleName nvarchar(30)
+
+alter table Employees
+add LastName nvarchar(30)
+
+sp_rename 'employees.Name', 'Firstname'
+
+update Employees
+set MiddleName = 'Nick',
+LastName = 'jones'
+where id = 1
+
+update Employees
+set LastName = 'Anderson'
+where id = 2
+
+update Employees
+set LastName = 'Smith'
+where id = 4
+
+update Employees
+set MiddleName = 'todd',
+LastName = 'Someone',
+FirstName = null
+where id = 5
+
+update Employees
+set MiddleName = 'Ten',
+LastName = 'Sven'
+where id = 6
+
+update Employees
+set LastName = 'Connor'
+where id = 7
+
+update Employees
+set MiddleName = 'Balerine'
+where id = 8
+
+update Employees
+set MiddleName = '007',
+LastName = 'Bond'
+where id = 9
+
+update Employees
+set FirstName = null,
+LastName = 'Crowe'
+where id = 10
+
+select id, coalesce(FirstName, MiddleName, LastName) as Name
+from Employees
+
+create table IndianCustomer
+(
+Id int identity(1,1),
+name nvarchar(30),
+Email nvarchar(30)
+)
+
+create table UKCustomer
+(
+Id int identity(1,1),
+name nvarchar(30),
+Email nvarchar(30)
+)
+
+insert into IndianCustomer(Name,Email)
+values('Raj','R@R.com'),
+('Sam','S@S.com')
+
+
+insert into UKCustomer(Name,Email)
+values('Ben','B@B.com'),
+('Sam','S@S.com')
+
+--union all ühendab tabelid ja näitab sisu
+select Id, Name, Email from IndianCustomer
+union all
+select Id, Name, Email from UKCustomer
+
+select Id, Name, Email from IndianCustomer
+union 
+select Id, Name, Email from UKCustomer
+
+select Id, Name, Email from IndianCustomer
+union all
+select Id, Name, Email from UKCustomer
+order by name
+
+create procedure spGetEmployees
+as begin
+	select FirstName, gender from Employees
+end
+
+spGetEmployees
+
+exec spGetEmployees
+execute spGetEmployees
+
+create proc spGetEmployeesbyGenderAndDepartment
+@gender nvarchar(20),
+@DepartmentId int
+as begin
+	select FirstName, Gender, departmentId from Employees where Gender = @gender
+	and departmentId = @DepartmentId
+end
+
+spGetEmployeesbyGenderAndDepartment 'male', 1
+
+spGetEmployeesbyGenderAndDepartment @departmentId = 1, @Gender = 'Male'
+
+---saab sp sisu vaadata
+sp_helptext spGetEmployeesbyGenderAndDepartment 
+
+--kuidas muuta sp ja panna sinna võti peale
+
+alter proc spGetEmployeesbyGenderAndDepartment
+@gender nvarchar(20),
+@DepartmentId int
+with encryption
+as begin
+	select FirstName, Gender, departmentId from Employees where Gender = @gender
+	and departmentId = @DepartmentId
+end
+
+create proc spGetEmployeeCountByGender
+@gender nvarchar(20)
+@EmployeeCount int output
+as begin
+	select @EmployeeCount
+
+end
+
+declare @TotalCount int
+
+execute spGetEmployeeCountByGender 'Male', @TotalCount out
+
+if @TotalCount = 0
+	print N'TotalCount is null'
+else
+	print N'total is not null'
+	print @TotalCount
