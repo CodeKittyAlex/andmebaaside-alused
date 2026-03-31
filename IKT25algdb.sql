@@ -1,5 +1,5 @@
 --teeme andmebaasi e db
---create database IKT25tar
+create database IKT25tar
 
 -- andmebaasi valimine
 --use IKT25tar
@@ -805,4 +805,62 @@ as begin
 end
 
 select id name, DateOfBirth, dbo.fnComputeAge(DateOfBirth) as Age from EmployeesWithDates
+
+select dbo.fnConputeAge('02/24/2010') as age
+
+select id, name, DateOfBirth,
+CONVERT(nvarchar, DateOfBirth, 110) as ConvertedDOB
+from EmployeesWithDates
+
+select id, name, name + ' - ' + cast(id as nvarchar) as [Name-Id] from EmployeesWithDates
+
+select cast(getdate() as date) --tänane kp
+select cast(getdate() as nvarchar)
+
+
+--matemaatilised func
+select ABS(-5) --abs on absoluutväärtusega numberja tulemusena saame ilma miinus märgita 5
+select CEILING(4.2)-- celing on func, mis ümardab ülespoole ja tulemuseks saame 5
+select CEILING(-4.2) -- seeling ümardab ka miinus numbrid ülespoole mis tähendab, et saame -4
+select floor(15.2)
+select FLOOR(-15.2)
+select POWER(2,4)
+select square(9) -- antud juhul 9 ruudus
+select sqrt(16)
+
+select rand() -- rand on func mis genereerib juhusliu numbri 0 kuni 1
+select floor(rand() * 100) 
+
+declare @count int
+set @count = 1
+while (@count <= 10)
+begin
+	select floor(rand() * 100) 
+	set @count = @count + 1
+end
+
+select round(850.556, 2) 
+select round(850.556, 2, 1) 
+--round on func, mis ühendab kaks komakohta ja kui kolmas parameeter on 1 siis ümardab üles
+select round(850.556, 1) --ümardab ühe komakoha
+select round(850.556,1,1) 
+select round(850.556, -2) 
+select round(850.556, -1) 
+
+create function dbo.CalculateAge(@DOB date)
+returns int
+as begin 
+declare @Age int
+	set @Age = DATEDIFF(year, @dob, GETDATE())-
+	case
+		when(MONTH(@DOB) > MONTH(GETDATE())) or
+		(MONTH(@DOB) = MONTH(GETDATE()) and DAY(@DOB)<DAY(GETDATE())) 
+		then 1 else 0 end
+	return @Age
+end
+
+exec dbo.CalculateAge '1980-12-30'
+
+select id, name, dbo.CalculateAge(DateOfBirth) as Age from EmployeesWithDates
+where dbo.CalculateAge(DateOfBirth) >36
 
