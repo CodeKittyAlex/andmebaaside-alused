@@ -760,6 +760,8 @@ INSERT INTO EmployeesWithDates  (Id, Name, DateOfBirth)
 VALUES (3, 'John', '1985-08-22 12:03:30.370');
 INSERT INTO EmployeesWithDates  (Id, Name, DateOfBirth)  
 VALUES (4, 'Sara', '1979-11-29 12:59:30.670');
+INSERT INTO EmployeesWithDates  (Id, Name, DateOfBirth)  
+VALUES (5, 'Todd', '1978-11-29 12:59:30.670');
 
 select * from EmployeesWithDates
 
@@ -864,3 +866,136 @@ exec dbo.CalculateAge '1980-12-30'
 select id, name, dbo.CalculateAge(DateOfBirth) as Age from EmployeesWithDates
 where dbo.CalculateAge(DateOfBirth) >36
 
+--inline table valued func
+alter table EmployeesWithDates
+add DepartmentId Int
+alter table EmployeesWithDates
+add Gender nvarchar(10)
+
+select * from EmployeesWithDates
+
+update EmployeesWithDates
+set DepartmentId = 1, Gender = 'male'
+where Id =  1
+update EmployeesWithDates
+set DepartmentId = 2, Gender = 'female'
+where Id =  2
+update EmployeesWithDates
+set DepartmentId = 1, Gender = 'male'
+where Id =  3
+update EmployeesWithDates
+set DepartmentId = 3, Gender = 'female'
+where Id =  4
+update EmployeesWithDates
+set DepartmentId = 1, Gender = 'male'
+where Id =  5
+
+--scalar function annab mingis vahemikus olevaid andmeid,
+--inline tabel values ei kasuta begin ja end funksioone
+--scalar annab väärtused ja inline annab tabeli
+create function fn_EmployeesbyGender(@Gender nvarchar(10))
+returns table
+as
+return(select Id, Name, DateOfBirth, DepartmentId, Gender
+		from EmployeesWithDates
+		where Gender = @Gender)
+
+select * from fn_EmployeesbyGender ('female')
+
+--tahaks ainult pami nime näha
+
+select * from fn_EmployeesbyGender ('female') where name = 'pam'
+
+select * from Department
+
+select name, Gender, DepartmentName
+from fn_EmployeesbyGender('male') E
+join Department D on D.Id = E.DepartmentId
+
+--multi table statment
+--inline funksioon
+create function fn_GetEmployees()
+returns table as
+return(select Id, Name, cast(DateOfBirth as date)
+		as DOB
+		From EmployeesWithDates)
+
+select * from fn_GetEmployees()
+
+--multi-state puhul peab defineerima uue tabeli veerud koos muutujatega
+--funktsiooni nimi on fn_MS_GetEmployees()
+--peab esitama meile id, Name, DOB tabelist EmployeesWithDates
+
+create function fn_MS_GetEmployees()
+returns @Table table 
+(Id int,Name nvarchar(20), DOB date)
+as begin
+	insert into @Table 
+	select e.Id, e.Name, e.DateOfBirth
+	from EmployeesWithDates e
+	return
+end
+
+select * from fn_MS_GetEmployees()
+
+--inline Tabeli funktsioonid on paremini töötamas kuna käitletakse vaatena
+--multi puhul on pm tegemist stored proceduringa ja kulutab ressurssi rohkem
+
+update fn_GetEmployees() set Name = 'sam1' where Id = 1
+select * from fn_GetEmployees() --saab muuta andmeid
+
+update fn_MS_GetEmployees() set Name = 'sam1' where Id = 1
+--ei saa muuta multi state func
+--kuna see on nagu stored procedure
+
+--deterministlic vs non-deterministic func
+--deterministlic func annavad alati sama tulemuse, kui sisend on sama
+select COUNT(*) from EmployeesWithDates
+select SQUARE(4)
+
+--non-deterministlic func annavad erineva tulemuse, kui sisend on sama
+select getDate()
+select CURRENT_TIMESTAMP
+select rand()
+
+--1
+create function fn_GetAllCustomers_ITVF()
+returns table as
+return (select * from SalesLT.Customer) 
+
+select * from fn_GetAllCustomers_ITVF()
+
+--2
+create function fn_GetCustomerById_itvf(@CustomerID int)
+returns table as
+return(select FirstName, LastName
+		from SalesLT.Customer
+		where CustomerID = @CustomerID)
+
+select * from fn_GetCustomerById_itvf(4)
+
+--3
+create function fn_GetOrdersById_itvf(@CustomerID int)
+returns table as
+return(select SalesOrderID
+		from SalesLT.SalesOrderHeader
+		where CustomerID = @CustomerID)
+
+select * from fn_GetOrdersById_itvf(30072)
+--4
+create function fn_GetProductsByPrice_ITVF()
+returns table as
+return(select min(ListPrice), Max(ListPrice) 
+		from SalesLT.Product)
+
+--10
+create function fn_GetTopCustomersBySpending_MSTVF()
+returns @results table
+(
+	CustomerID int,
+	fullname nvarchar(200),
+	TotalSpent MONEY
+)
+as begin
+	insert
+c.CustomerID,
