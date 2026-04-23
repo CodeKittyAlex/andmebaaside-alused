@@ -999,3 +999,119 @@ returns @results table
 as begin
 	insert
 c.CustomerID,
+
+create table ##TestTempTable(Id int, FirstName nvarchar(20), Gender nvarchar(20))
+
+insert into ##TestTempTable values(101, 'Mart', 'Male')
+insert into ##TestTempTable values(102, 'Joe', 'Female')
+insert into ##TestTempTable values(103, 'Pam', 'Female')
+insert into ##TestTempTable values(104, 'James', 'Male')
+
+create view vOnTempTable
+as
+select Id, FirstName, Gender
+from ##TestTempTable
+
+--trigerid
+
+--DML trigger
+--kokku on kolme tüüpi DML,DDL ja LOGON
+
+--trigger on stored proceadure eriliik, mis automaatselt käivitub,
+--kui mingi tegevus peaks andmebaasis aset leidma
+
+--DML - data manipulatsion language
+--DML-i põhilised käsutlused: insert, update ja delete
+
+--DML triggereid saab klassifitseerida kahte tüüpi:
+--1.
+--2.
+
+create table EmployeeAudit
+(
+Id int identity(1, 1) primary key,
+AuditData nvarchar(1000)
+)
+
+--peale iga töötaja sisestamist tahame eada saada töötaja Id-d
+--päeva ning aega(millal sisestati)
+--kõik andmed tulevad EmployeeAudit tabelisse
+--andmed sisestame Employees tabelisse
+
+create trigger trEmployeeForInsert
+on Employees
+for insert
+as begin
+declare @Id int 
+select @id = Id from inserted
+insert into EmployeeAudit
+values ('New employee with Id = '+ cast(@Id as nvarchar(5)) + ' is added at ' + cast(getdate() as nvarchar(20)))
+end
+
+select * from Employees
+
+insert into Employees values
+(12, 'Bob', 'blob', 'Bomb', 'Male',3000,1,3,'bob@bob.com')
+go
+select * from EmployeeAudit
+
+
+--delete trigger
+create trigger trEmployeeForDelete
+on employees
+for delete
+as begin
+	declare @Id int
+	select @Id = Id from deleted
+
+	insert into EmployeeAudit
+	values('An Existing employee with Id = ' + cast(@Id as nvarchar(5)) + ' is deleted at ' + cast(getdate()as nvarchar(20)))
+end
+
+delete from Employees where Id = 12
+select * from EmployeeAudit
+
+-- update trigger
+create trigger trEmployeesForUpdate
+on Employees
+for update
+as begin
+	--muutujate deklareerimine
+	declare @Id int
+	declare @OldGender nvarchar(20), @NewGender nvarchar(20)
+	declare @OldSalary int, @NewSalary int
+	declare @OldDepartmentId int, @NewDepartmentId int
+	declare @OldManagerId int, @NewManagerId int
+	declare @OldFirstName nvarchar(20) , @NewFirstName nvarchar(20)
+	declare @OldMiddleName nvarchar(20) , @NewMiddleName nvarchar(20)
+	declare @OldLastName nvarchar(20) , @NewLastName nvarchar(20)
+	declare @OldEmail nvarchar(50), @NewEmail nvarchar(50)
+
+	--muutuja kuhu läheb lõpptekst
+	declare @AuditString nvarchar(1000)
+
+	--leb kõik uuendatud andmed temp tabeli alla
+	select * from #Tempable
+	from inserted
+
+	--käib läbi kõik andmed temp tebelist
+	while (exists(select Id From #TempTable))
+	begin
+		set @AuditString = ''
+		--selekteerib esimene rea andmed temp tabel-st
+		select top 1 @Id, @NewGender = Gender, @NewSalary = Salary, @NewDepartmentId = DepartmentId,
+		@NewManagerId = ManagerId, @NewFirstName = FirstName, @NewMiddleName = MiddleName,
+		@NewLastName = LastName, @NewEmail = Email
+		from #TempTable
+		-- võtab vanad andmed kustudab tabelist
+		select @OldGender = Gender, @OldSalary = Salary, @OldDepartmentId = DepartmentId,
+		@OldManagerId = ManagerId, @OldFirstName = FirstName, @OldMiddleName = MiddleName,
+		@OldLastName = LastName, @OldEmail = Email 
+		from deleted where Id @Id
+
+
+
+
+
+
+
