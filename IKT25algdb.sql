@@ -1406,3 +1406,292 @@ join Employee
 on Department.Id = Employee.DepartmentId
 order by DepartmentName
 
+
+with Employees_Name_Gender
+as
+(
+	select id, Name, Gender from Employees
+)
+select * from Employees_Name_Gender
+
+with EmployeesByDepartment
+as
+(
+	select Employee.Id, Employee.Name, DepartmentName
+	from Employee
+	join Department
+	on Employee.DepartmentId = Department.Id
+)
+select * from EmployeesByDepartment
+
+with EmployeesByDepartment
+as
+(
+	select Employee.Id, Employee.Name, Gender, DepartmentName
+	from Employee
+	join Department
+	on Department.Id = Employee.DepartmentId
+)
+update EmployeesByDepartment set Gender = 'Male' where Id = 1
+
+with EmployeesByDepartment
+as
+(
+	select Employee.Id, Employee.Name, Gender, DepartmentName
+	from Employee
+	join Department
+	on Department.Id = Employee.DepartmentId
+)
+update EmployeesByDepartment set Gender = 'Female', DepartmentName = 'Payroll' where Id = 1
+--ei luba mitmes tabelis korraga andmeid muuta, kui on tegemist cte-ga
+
+---kokkuvõte CTE-st
+-- 1. kui cte baseerub ühel tabelil, siis uuendus töötab
+-- 2. kui cte baseerub mitmele tabelil, siis tuleb veateade
+-- 3. kui cte baseerub mitmele tabelil ja tahame muuta ainult ühte tebelit,
+--siis uuendus saab tehtud
+
+-- korduv cte
+---cte, mis iseendale viitab, kutsutakse korduvaks cte-ks
+--kui tahad andmeid näidata hierarhiliselt
+create table Employee
+(
+	EmployeeId int primary key,
+	Name nvarchar(20),
+	ManagerId int
+)
+
+insert into Employee values (1, 'Tom', 2) 
+insert into Employee values (2, 'Josh', null)
+insert into Employee values (3, 'Mike', 2)
+insert into Employee values (4, 'John', 3)
+insert into Employee values (5, 'Pam', 1)
+insert into Employee values (6, 'Mary', 3)
+insert into Employee values (7, 'James', 1) 
+insert into Employee values (8, 'Sam', 5)
+insert into Employee values (9, 'Simon', 1)
+
+select Emp.Name as [Employee Name],
+isnull (Manager.Name, 'Super Boss') as [Manager Name]
+from dbo.Employee Emp
+left join Employee Manager
+on Emp.ManagerId = Manager.EmployeeId
+
+with EmployeeCTE(Id, Name, ManagerId, [level])
+as 
+(
+	select Employee.EmployeeId, Name, ManagerId, 1
+	from Employee
+	where ManagerId is null
+
+	union all
+	
+	select Employee.EmployeeId, Employee.Name, Employee.ManagerId, 
+	EmployeeCTE.[level] + 1
+	from Employee
+	join EmployeeCTE 
+	on Employee.ManagerId = EmployeeCTE.Id
+)
+select EmpCTE.Name as [Employee Name],
+isnull (MgrCTE.Name, 'Super Boss') as [Manager Name],
+EmpCTE.Level as [Boss Level]
+from EmployeeCTE EmpCTE
+left join EmployeeCTE MgrCTE
+on EmpCTE.ManagerId = MgrCTE.Id
+
+---PIVOT
+
+create table Sales
+(
+	SalesAgent nvarchar(20),
+	SalesCountry nvarchar(20),
+	SalesAmount int
+)
+
+insert into Sales values ('Tom', 'UK', 200)
+insert into Sales values ('John', 'US', 180)
+insert into Sales values ('John', 'UK', 260)
+insert into Sales values ('David', 'India', 450)
+insert into Sales values ('Tom', 'India', 350)
+insert into Sales values ('David', 'US', 200)
+insert into Sales values ('Tom', 'US', 130)
+insert into Sales values ('John', 'India', 540)
+insert into Sales values ('John', 'UK', 120)
+insert into Sales values ('David', 'UK', 220)
+insert into Sales values ('John', 'UK', 420)
+insert into Sales values ('David', 'US', 320)
+insert into Sales values ('Tom', 'US', 340)
+insert into Sales values ('Tom', 'UK', 200)
+insert into Sales values ('John', 'India', 200)
+insert into Sales values ('David', 'India', 230)
+insert into Sales values ('David', 'India', 280)
+insert into Sales values ('Tom', 'UK', 480)
+insert into Sales values ('John', 'UK', 360)
+insert into Sales values ('David', 'UK', 140)
+
+----
+select SalesCountry, SalesAgent, sum(SalesAmount) as TotalSales
+from Sales
+group by SalesCountry, SalesAgent
+order by SalesCountry, SalesAgent
+
+--- kasutada pivotit, et saada sama tulemus nagu ülemises päringus
+
+select SalesAgent, India, US, UK
+from Sales
+as SourceTable
+pivot
+(
+	sum(SalesAmount) for SalesCountry in (India, US, UK)
+)
+as PivotTable
+
+--päring muudab unikaalsete väärtust (India, US, UK) SalesCountry veerus
+-- omaette veergudeks koos veergude SalesAmount liitmisega.
+
+Create table SalesWithId
+(
+Id int primary key,
+SalesAgent nvarchar(20),
+SalesCountry nvarchar (20),
+SalesAmount int
+)
+
+insert into SalesWithId values (1,'Tom', 'UK', 200)
+insert into SalesWithId values (2,'John', 'US', 180)
+insert into SalesWithId values (3,'John', 'UK', 260)
+insert into SalesWithId values (4,'David', 'India', 450)
+insert into SalesWithId values (5,'Tom', 'India', 350)
+insert into SalesWithId values (6,'David', 'US', 200)
+insert into SalesWithId values (7,'Tom', 'US', 130)
+insert into SalesWithId values (8,'John', 'India', 540)
+insert into SalesWithId values (9,'John', 'UK', 120)
+insert into SalesWithId values (10,'David', 'UK', 220)
+insert into SalesWithId values (11,'John', 'UK', 420)
+insert into SalesWithId values (12,'David', 'US', 320)
+insert into SalesWithId values (13,'Tom', 'US', 340)
+insert into SalesWithId values (14,'Tom', 'UK', 660)
+insert into SalesWithId values (15,'John', 'India', 430)
+insert into SalesWithId values (16,'David', 'India', 230)
+insert into SalesWithId values (17,'David', 'India', 280)
+insert into SalesWithId values (18,'Tom', 'UK', 480)
+insert into SalesWithId values (19,'John', 'UK', 360)
+insert into SalesWithId values (20,'David', 'UK', 140)
+
+select SalesAgent, India, US, UK
+from SalesWithId
+as SourceTable
+pivot
+(
+	sum(SalesAmount) for SalesCountry in (India, US, UK)
+)
+as PivotTable
+-- põhjuseks on Id veeru olemasolu SalesWithId, mida võetakse arvesse
+-- pööramise 
+
+select SalesAgent, India, US, UK
+from
+(
+	select SalesAgent, SalesCountry, SalesAmount
+	from SalesWithId
+)
+as SourceTable
+pivot
+(
+	sum(SalesAmount) for SalesCountry in (India, US, UK)
+)
+as PivotTable
+
+--transaction
+-- transaction jälgib järgmisi samme:
+-- 1. selle algus
+-- 2. käivitab db käske
+-- 3. kontrollib vigu. kui on viga siis taastab algse oleku
+
+create table MailingAddress
+(
+	Id int not null primary key,
+	EmployeeNumber int,
+	HouseNumber nvarchar(20),
+	StreetAddress nvarchar(20),
+	City nvarchar(20),
+	PostalCode nvarchar(20)
+)
+
+insert into MailingAddress
+values (1, 101, '#10', 'King Street','Londoon', 'CR27DW')
+
+create table PhysicalAddress
+(
+	Id int not null primary key,
+	EmployeeNumber int,
+	HouseNumber nvarchar(20),
+	StreetAddress nvarchar(20),
+	City nvarchar(20),
+	PostalCode nvarchar(20)
+)
+
+insert into PhysicalAddress
+values (1, 101, '#10', 'King Street','Londoon', 'CR27DW')
+
+create proc spUpdateAddress
+as begin
+	begin try
+		begin transaction
+			update MailingAddress set City = 'LONDON'
+			where MailingAddress.Id = 1 and EmployeeNumber = 101
+
+			update PhysicalAddress set City = 'LONDON'
+			where PhysicalAddress.Id = 1 and EmployeeNumber = 101
+		commit transaction
+	end try
+	begin catch
+		rollback tran
+	end catch
+end
+
+-- käivitame spUpdate Address stored procedure-i
+spUpdateAddress
+
+select * From MailingAddress
+select * From PhysicalAddress
+
+--kui teine uuendus ei lähe läbi, siis esimene ei lähe ka läbi
+-- kõik uuendused peavad läbi minema
+
+--- transcation ACID test
+
+--edukas transaction peab läbima ACID testi:
+-- a - atomic e aatomlikus
+-- c - consistent e järjepidev
+-- i - isoation
+-- d - durable
+
+-- Atomic - kõik tehingud transactionis on kas edukalt täidetud või need
+-- lükatakse tagasi. Nt mõlemad käsud peaksid alati õnnestuma. andmebaas
+-- teeb sellisel juhul: võtab esimese update tagasi ja veeretab selle algasenisse
+-- e taastab algsed andmed
+
+--consistent - kõik transactioni puudutavad andmed jäetakse loogiliselt
+--järelepide
+
+--isolated - transaction peab andmeid mõjutama, sekkumata teistesse
+--sammaaegsetesse transacto
+
+
+--subqueries e alamkäsud
+--alamkäsud on sql-i käsud, mis on pesastatud
+create table product
+(
+Id int primary key,
+Name nvarchar(20),
+)
+
+create table ProductSales
+(
+Id int primary key identity,
+ProductId int foreign key references product(Id),
+UnitPrice Int,
+QualitiSold int,
+)
+
