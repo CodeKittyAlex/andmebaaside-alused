@@ -1815,3 +1815,95 @@ end
 
 
 
+-- vabastab rea seadistuse e suleb cursoti
+close ProductIdCursor
+--vabastab ressursid, mis on seotud cursoriga
+deallocate ProductIdCursor
+--cursori käskluse lõpp
+
+select * from product
+
+--vaatame, kui read on uuendatud
+select Name, UnitPrice
+from Product join
+ProductSales on Product.Id = ProductSales.ProductId
+where(Name = 'Product - 55' or name = 'product - 65' or name = 'product - 1000') 
+
+--- asendame cursorit JOIN-ga
+update ProductSales
+set UnitPrice = 
+	case
+		when name = 'Product - 55' then 155
+		when name = 'Product - 65' then 165
+		-- võib kasutada like või =
+		when name like 'Product - 1000' then 10001
+	end
+from ProductSales
+join product
+on product.Id = ProductSales.ProductId
+where Name = 'Product - 55' or Name = 'Product - 65' or
+Name like 'Product - 1000'
+
+select Name, UnitPrice
+from Product join
+ProductSales on Product.Id = ProductSales.ProductId
+where(Name = 'Product - 55' or name = 'product - 65' or name = 'product - 1000') 
+
+--- tabelite info
+--- nimikiri tabelitest
+select * from sysobjects where xtype = 'S'
+
+select * from sys.tables
+-- nimekiri tabelistest ja view-st
+select * from INFORMATION_SCHEMA.TABLES
+
+--kui soovid erinevaid objekitüüpe vaadata, siis kasuta xtype süntaksit
+select distinct xtype from sysobjects
+
+--it - internal table
+-- P - stored procedure
+-- pk - primary key constraint
+-- s - system table
+-- sq - service queue
+-- u - user table
+-- v - view
+
+---annab teada kas sellise nimega tabel on olemas
+if not exists (select * from INFORMATION_SCHEMA.TABLES where TABLE_NAME = 'Employee')
+begin
+	create table Employee
+	(
+	Id int primary key,
+	name nvarchar(30),
+	ManagerId int
+	)
+	print 'table has been created'
+end
+else
+begin
+	print'table already exists'
+end
+
+--- saab kasutada ka sisseehitatud funktsiooni: object_id()
+if OBJECT_ID('Employee') is null
+begin
+	print 'table created'
+end
+else
+begin
+	print 'table already exsists'
+end
+
+-- tahame sama nimega tabelit ära kustudada ja siis uuesti luua
+if OBJECT_ID('Employee') is null
+begin
+	drop table Employee
+end
+else
+create table Employee
+(
+	Id int primary key,
+	Name nvarchar(30)
+	managerId int
+)
+
